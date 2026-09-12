@@ -125,7 +125,7 @@ async function startStream(){
   }
   connected=true;
   document.getElementById('status').textContent='● متصل - جاري البث...';
-  frameTimer=setInterval(fetchFrame, 350);
+  frameTimer=setInterval(fetchFrame, 250);
 }
 async function fetchFrame(){
   if(!connected||!fp||!token) return;
@@ -197,10 +197,10 @@ pad.addEventListener('touchmove', e=>{
     const p=padPos(e.touches[0]);
     const dx=p.x-pLastX, dy=p.y-pLastY;
     pMoved+=Math.abs(dx)+Math.abs(dy);
-    accDX+=dx*2.2; accDY+=dy*2.2; // حساسية اللمس
+    accDX+=dx*3.0; accDY+=dy*3.0; // حساسية أعلى
     pLastX=p.x; pLastY=p.y;
     const now=Date.now();
-    if(now-pLastSend>60 && (Math.abs(accDX)>1||Math.abs(accDY)>1)){
+    if(now-pLastSend>40 && (Math.abs(accDX)>1||Math.abs(accDY)>1)){
       sendControl({action:'move',dx:Math.round(accDX),dy:Math.round(accDY)});
       accDX=0; accDY=0; pLastSend=now;
     }
@@ -226,12 +226,17 @@ function padEnd(e){
 pad.addEventListener('touchend', padEnd);
 pad.addEventListener('touchcancel', ()=>{ pDown=false; pFingers=0; });
 // دعم الماوس على اللوحة (للتجربة من PC)
-let mDown=false, mLX=0, mLY=0;
-pad.addEventListener('mousedown', e=>{ mDown=true; mLX=e.clientX; mLY=e.clientY; });
+let mDown=false, mLX=0, mLY=0, mAccX=0, mAccY=0, mLastSend=0;
+pad.addEventListener('mousedown', e=>{ mDown=true; mLX=e.clientX; mLY=e.clientY; mAccX=0; mAccY=0; });
 window.addEventListener('mousemove', e=>{
   if(!mDown) return;
-  sendControl({action:'move',dx:Math.round((e.clientX-mLX)*2),dy:Math.round((e.clientY-mLY)*2)});
+  mAccX+=(e.clientX-mLX)*3; mAccY+=(e.clientY-mLY)*3;
   mLX=e.clientX; mLY=e.clientY;
+  const now=Date.now();
+  if(now-mLastSend>40 && (Math.abs(mAccX)>1||Math.abs(mAccY)>1)){
+    sendControl({action:'move',dx:Math.round(mAccX),dy:Math.round(mAccY)});
+    mAccX=0; mAccY=0; mLastSend=now;
+  }
 });
 window.addEventListener('mouseup', ()=>{ mDown=false; });
 /* ===== أزرار الماوس ===== */
@@ -307,7 +312,7 @@ setInterval(()=>{ if(!connected) loadDevices(); }, 5000);
       } else {
         document.getElementById('status').textContent='● متصل - جاري البث...';
       }
-      frameTimer=setInterval(fetchFrame, 350);
+      frameTimer=setInterval(fetchFrame, 250);
     }
   }catch(e){ console.log(e); }
 })();
