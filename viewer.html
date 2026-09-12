@@ -17,7 +17,7 @@ body{background:#0f172a;color:#f1f5f9;font-family:Segoe UI,system-ui;overflow-x:
 #zoomBar{position:absolute;top:8px;left:8px;display:flex;gap:6px;z-index:5}
 #zoomBar button{background:rgba(30,41,59,.9);color:#fff;border:1px solid #475569;width:38px;height:38px;border-radius:10px;font-size:18px;font-weight:bold}
 #zoomLbl{position:absolute;bottom:8px;left:8px;background:rgba(15,23,42,.85);padding:4px 10px;border-radius:12px;font-size:12px;border:1px solid #334155}
-#vcursor{position:absolute;z-index:6;font-size:30px;color:#38bdf8;text-shadow:0 0 4px #000,0 0 2px #000;pointer-events:none;display:none;transform:translate(-3px,-3px);line-height:1}
+#vcursor{position:absolute;z-index:6;pointer-events:none;display:none;transform:translate(-2px,-2px);line-height:0;filter:drop-shadow(0 0 2px #000)}
 /* لوحة اللمس */
 #padSection{padding:10px}
 #pad{background:#1e293b;border:2px dashed #3b82f6;border-radius:14px;height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:none;user-select:none;gap:4px}
@@ -46,7 +46,7 @@ body{background:#0f172a;color:#f1f5f9;font-family:Segoe UI,system-ui;overflow-x:
 </div>
 <div id="streamWrap">
   <img id="stream" alt="بث الشاشة" draggable="false">
-  <div id="vcursor">➤</div>
+  <div id="vcursor"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M2 2 L20 11.5 L13 13 L16 20.5 L13.5 21.5 L10.5 14 L2 19 Z" fill="#38bdf8" stroke="#000" stroke-width="1.6"/></svg></div>
   <div id="zoomBar">
     <button id="zIn">+</button>
     <button id="zOut">−</button>
@@ -128,7 +128,7 @@ async function startStream(){
   connected=true;
   document.getElementById('status').textContent='● متصل - جاري البث...';
   initVC();
-  frameTimer=setInterval(fetchFrame, 200);
+  frameTimer=setInterval(fetchFrame, 150);
 }
 let lastFrameHash='';
 function quickHash(s){ let h=0; for(let i=0;i<s.length;i+=4096){ h=(h*31+s.charCodeAt(i))|0; } return h+'_'+s.length; }
@@ -352,7 +352,7 @@ setInterval(()=>{ if(!connected) loadDevices(); }, 5000);
         document.getElementById('status').textContent='● متصل - جاري البث...';
       }
       initVC();
-      frameTimer=setInterval(fetchFrame, 200);
+      frameTimer=setInterval(fetchFrame, 150);
     }
   }catch(e){ console.log(e); }
 })();
