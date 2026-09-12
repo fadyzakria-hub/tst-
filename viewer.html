@@ -125,14 +125,17 @@ async function startStream(){
   }
   connected=true;
   document.getElementById('status').textContent='● متصل - جاري البث...';
-  frameTimer=setInterval(fetchFrame, 250);
+  frameTimer=setInterval(fetchFrame, 200);
 }
+let lastFrameHash='';
+function quickHash(s){ let h=0; for(let i=0;i<s.length;i+=4096){ h=(h*31+s.charCodeAt(i))|0; } return h+'_'+s.length; }
 async function fetchFrame(){
   if(!connected||!fp||!token) return;
   try{
     const rows=await sb('GET','web_sessions',`?fingerprint=eq.${fp}&token=eq.${token}&select=last_frame`);
     if(rows.length && rows[0].last_frame){
-      document.getElementById('stream').src='data:image/jpeg;base64,'+rows[0].last_frame;
+      const f=rows[0].last_frame, h=quickHash(f);
+      if(h!==lastFrameHash){ lastFrameHash=h; document.getElementById('stream').src='data:image/jpeg;base64,'+f; }
     }
   }catch(e){ console.log(e); }
 }
@@ -312,7 +315,7 @@ setInterval(()=>{ if(!connected) loadDevices(); }, 5000);
       } else {
         document.getElementById('status').textContent='● متصل - جاري البث...';
       }
-      frameTimer=setInterval(fetchFrame, 250);
+      frameTimer=setInterval(fetchFrame, 200);
     }
   }catch(e){ console.log(e); }
 })();
