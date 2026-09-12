@@ -17,6 +17,7 @@ body{background:#0f172a;color:#f1f5f9;font-family:Segoe UI,system-ui;overflow-x:
 #zoomBar{position:absolute;top:8px;left:8px;display:flex;gap:6px;z-index:5}
 #zoomBar button{background:rgba(30,41,59,.9);color:#fff;border:1px solid #475569;width:38px;height:38px;border-radius:10px;font-size:18px;font-weight:bold}
 #zoomLbl{position:absolute;bottom:8px;left:8px;background:rgba(15,23,42,.85);padding:4px 10px;border-radius:12px;font-size:12px;border:1px solid #334155}
+#vcursor{position:absolute;z-index:6;font-size:30px;color:#38bdf8;text-shadow:0 0 4px #000,0 0 2px #000;pointer-events:none;display:none;transform:translate(-3px,-3px);line-height:1}
 /* لوحة اللمس */
 #padSection{padding:10px}
 #pad{background:#1e293b;border:2px dashed #3b82f6;border-radius:14px;height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:none;user-select:none;gap:4px}
@@ -45,6 +46,7 @@ body{background:#0f172a;color:#f1f5f9;font-family:Segoe UI,system-ui;overflow-x:
 </div>
 <div id="streamWrap">
   <img id="stream" alt="بث الشاشة" draggable="false">
+  <div id="vcursor">➤</div>
   <div id="zoomBar">
     <button id="zIn">+</button>
     <button id="zOut">−</button>
@@ -54,7 +56,7 @@ body{background:#0f172a;color:#f1f5f9;font-family:Segoe UI,system-ui;overflow-x:
 </div>
 <div id="status">اختر جهازاً واضغط اتصال</div>
 <div id="padSection">
-  <div id="pad"><b>👆 لوحة اللمس</b><span>اسحب للتحريك • انقرة = كليك شمال</span><span>إصبعان: حركة = سكرول • نقرة = كليك يمين</span></div>
+  <div id="pad"><b>👆 لوحة اللمس</b><span>اسحب لتحريك المؤشر الأزرق • انقرة = نقل ونقرة في مكانه</span><span>إصبعان: حركة = سكرول • نقرة = كليك يمين في مكان الأزرق</span></div>
 </div>
 <div id="mouseBtns">
   <button id="btnLeft">🖱 شمال</button>
@@ -178,6 +180,43 @@ streamWrap.addEventListener('touchmove', e=>{
     e.preventDefault();
   }
 }, {passive:false});
+/* ===== المؤشر الوهمي (يظهر في المتصفح فقط - أزرق) ===== */
+let VX=0, VY=0, VC_INIT=false;
+const vcEl=document.getElementById('vcursor');
+function imgBox(){
+  const r=img.getBoundingClientRect(), w=streamWrap.getBoundingClientRect();
+  return {x:r.left-w.left, y:r.top-w.top, w:r.width, h:r.height};
+}
+function placeVC(){
+  const b=imgBox();
+  vcEl.style.left=(b.x+VX)+'px';
+  vcEl.style.top=(b.y+VY)+'px';
+  vcEl.style.display=connected?'block':'none';
+}
+function clampVC(){
+  const b=imgBox();
+  VX=Math.min(Math.max(VX,0),Math.max(b.w,1));
+  VY=Math.min(Math.max(VY,0),Math.max(b.h,1));
+}
+function moveVC(dx,dy){
+  if(!connected||VIEW_ONLY) return;
+  if(Z!==1) setZoom(1);
+  VX+=dx; VY+=dy; clampVC(); placeVC();
+}
+function vcToFrame(){
+  const b=imgBox();
+  return {fx:Math.round(VX/Math.max(b.w,1)*img.naturalWidth), fy:Math.round(VY/Math.max(b.h,1)*img.naturalHeight)};
+}
+function clickAt(button){
+  if(!connected||VIEW_ONLY) return;
+  const f=vcToFrame();
+  sendControl({action:'click_at', fx:f.fx, fy:f.fy, button:button||'left'});
+}
+img.addEventListener('load', ()=>{
+  if(!VC_INIT){ const b=imgBox(); VX=b.w/2; VY=b.h/2; VC_INIT=true; }
+  placeVC();
+});
+window.addEventListener('resize', placeVC);
 /* ===== لوحة اللمس (تاتش باد) ===== */
 const pad=document.getElementById('pad');
 let pDown=false, pT0=0, pX0=0, pY0=0, pLastX=0, pLastY=0, pMoved=0, pFingers=0;
@@ -185,6 +224,7 @@ let pLastSend=0, accDX=0, accDY=0;
 let p2Y0=0, p2LastY=0;
 function padPos(t){ const r=pad.getBoundingClientRect(); return {x:t.clientX-r.left, y:t.clientY-r.top}; }
 pad.addEventListener('touchstart', e=>{
+  if(Z!==1) setZoom(1);
   pFingers=e.touches.length;
   if(pFingers===1){
     const p=padPos(e.touches[0]);
@@ -200,13 +240,8 @@ pad.addEventListener('touchmove', e=>{
     const p=padPos(e.touches[0]);
     const dx=p.x-pLastX, dy=p.y-pLastY;
     pMoved+=Math.abs(dx)+Math.abs(dy);
-    accDX+=dx*3.0; accDY+=dy*3.0; // حساسية أعلى
     pLastX=p.x; pLastY=p.y;
-    const now=Date.now();
-    if(now-pLastSend>40 && (Math.abs(accDX)>1||Math.abs(accDY)>1)){
-      sendControl({action:'move',dx:Math.round(accDX),dy:Math.round(accDY)});
-      accDX=0; accDY=0; pLastSend=now;
-    }
+    moveVC(dx*2.0, dy*2.0); // تحريك المؤشر الوهمي فقط - بلا إرسال
   } else if(e.touches.length===2){
     const p=padPos(e.touches[0]);
     const dy=p.y-p2LastY;
@@ -218,11 +253,10 @@ pad.addEventListener('touchmove', e=>{
 function padEnd(e){
   if(pFingers===1 && pDown){
     const dt=Date.now()-pT0;
-    if(accDX||accDY){ sendControl({action:'move',dx:Math.round(accDX),dy:Math.round(accDY)}); }
-    if(dt<260 && pMoved<14){ sendControl({action:'click',button:'left'}); } // نقرة
+    if(dt<260 && pMoved<14){ clickAt('left'); } // نقل الماوس الفعلي لمكان الوهمي + نقرة
   } else if(pFingers===2){
     const dt=Date.now()-pT0;
-    if(dt<300){ sendControl({action:'click',button:'right'}); } // نقرة إصبعين = يمين
+    if(dt<300){ clickAt('right'); } // نقرة يمين في مكان الوهمي
   }
   pDown=false; pFingers=0;
 }
@@ -233,13 +267,8 @@ let mDown=false, mLX=0, mLY=0, mAccX=0, mAccY=0, mLastSend=0;
 pad.addEventListener('mousedown', e=>{ mDown=true; mLX=e.clientX; mLY=e.clientY; mAccX=0; mAccY=0; });
 window.addEventListener('mousemove', e=>{
   if(!mDown) return;
-  mAccX+=(e.clientX-mLX)*3; mAccY+=(e.clientY-mLY)*3;
+  moveVC((e.clientX-mLX)*2.0, (e.clientY-mLY)*2.0);
   mLX=e.clientX; mLY=e.clientY;
-  const now=Date.now();
-  if(now-mLastSend>40 && (Math.abs(mAccX)>1||Math.abs(mAccY)>1)){
-    sendControl({action:'move',dx:Math.round(mAccX),dy:Math.round(mAccY)});
-    mAccX=0; mAccY=0; mLastSend=now;
-  }
 });
 window.addEventListener('mouseup', ()=>{ mDown=false; });
 /* ===== أزرار الماوس ===== */
@@ -254,9 +283,9 @@ function holdRepeat(el, fn){
   el.addEventListener('mouseup', stop);
   el.addEventListener('mouseleave', stop);
 }
-document.getElementById('btnLeft').onclick=()=>sendControl({action:'click',button:'left'});
-document.getElementById('btnRight').onclick=()=>sendControl({action:'click',button:'right'});
-document.getElementById('btnMid').onclick=()=>sendControl({action:'click',button:'middle'});
+document.getElementById('btnLeft').onclick=()=>clickAt('left');
+document.getElementById('btnRight').onclick=()=>clickAt('right');
+document.getElementById('btnMid').onclick=()=>clickAt('middle');
 holdRepeat(document.getElementById('scrUp'), ()=>sendControl({action:'scroll',dy:120}));
 holdRepeat(document.getElementById('scrDown'), ()=>sendControl({action:'scroll',dy:-120}));
 /* ===== الكيبورد ===== */
