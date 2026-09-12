@@ -6,18 +6,32 @@
 <title>التحكم - بث مباشر</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0f172a;color:#f1f5f9;font-family:Segoe UI,system-ui;overflow:hidden}
-#bar{background:#1e293b;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #334155}
+body{background:#0f172a;color:#f1f5f9;font-family:Segoe UI,system-ui;overflow-x:hidden}
+#bar{background:#1e293b;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #334155;position:sticky;top:0;z-index:10}
 #bar h1{font-size:15px;color:#38bdf8}
 #bar select, #bar button{background:#334155;color:#f1f5f9;border:1px solid #475569;padding:6px 10px;border-radius:6px;font-size:13px}
 #bar button{background:#3b82f6;border-color:#2563eb;font-weight:bold;cursor:pointer}
-#wrap{position:relative;width:100%;height:calc(100vh - 52px);background:#020617;display:flex;align-items:center;justify-content:center;overflow:hidden}
-#stream{max-width:100%;max-height:100%;object-fit:contain;background:#020617}
-#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
-#status{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,0.85);padding:6px 12px;border-radius:20px;font-size:12px;border:1px solid #334155}
-#kbd{position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid #334155;padding:8px;display:none;gap:6px}
-#kbd input{flex:1;background:#0f172a;color:#f1f5f9;border:1px solid #334155;padding:8px;border-radius:6px}
-#kbd button{background:#3b82f6;color:white;border:none;padding:8px 14px;border-radius:6px;font-weight:bold}
+/* منطقة البث + الزوم */
+#streamWrap{position:relative;width:100%;background:#020617;overflow:hidden;touch-action:none;max-height:42vh;min-height:220px;display:flex;align-items:center;justify-content:center}
+#stream{max-width:100%;max-height:42vh;object-fit:contain;transform-origin:center center;user-select:none;-webkit-user-drag:none}
+#zoomBar{position:absolute;top:8px;left:8px;display:flex;gap:6px;z-index:5}
+#zoomBar button{background:rgba(30,41,59,.9);color:#fff;border:1px solid #475569;width:38px;height:38px;border-radius:10px;font-size:18px;font-weight:bold}
+#zoomLbl{position:absolute;bottom:8px;left:8px;background:rgba(15,23,42,.85);padding:4px 10px;border-radius:12px;font-size:12px;border:1px solid #334155}
+/* لوحة اللمس */
+#padSection{padding:10px}
+#pad{background:#1e293b;border:2px dashed #3b82f6;border-radius:14px;height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:none;user-select:none;gap:4px}
+#pad span{color:#94a3b8;font-size:13px;pointer-events:none}
+#pad b{color:#38bdf8;font-size:15px;pointer-events:none}
+/* أزرار الماوس */
+#mouseBtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 10px 6px}
+#mouseBtns button{background:#334155;color:#fff;border:1px solid #475569;border-radius:12px;padding:14px 6px;font-size:15px;font-weight:bold;touch-action:manipulation}
+#mouseBtns button:active{background:#3b82f6}
+#btnLeft{background:#2563eb !important;border-color:#1d4ed8 !important}
+/* الحالة والكيبورد */
+#status{text-align:center;background:rgba(15,23,42,.9);padding:8px;font-size:13px;border-top:1px solid #334155;border-bottom:1px solid #334155}
+#kbd{padding:8px 10px;display:none;gap:6px}
+#kbd input{flex:1;background:#0f172a;color:#f1f5f9;border:1px solid #334155;padding:10px;border-radius:8px;font-size:14px}
+#kbd button{background:#3b82f6;color:white;border:none;padding:10px 14px;border-radius:8px;font-weight:bold}
 </style>
 </head>
 <body>
@@ -26,13 +40,29 @@ body{background:#0f172a;color:#f1f5f9;font-family:Segoe UI,system-ui;overflow:hi
   <div>
     <select id="deviceSel"><option>جاري التحميل...</option></select>
     <button id="btnConnect">اتصال</button>
-    <button id="btnClose" style="background:#dc2626">إغلاق البث</button>
+    <button id="btnClose" style="background:#dc2626">إغلاق</button>
   </div>
 </div>
-<div id="wrap">
-  <img id="stream" alt="بث الشاشة">
-  <canvas id="canvas"></canvas>
-  <div id="status">اختر جهازاً واضغط اتصال</div>
+<div id="streamWrap">
+  <img id="stream" alt="بث الشاشة" draggable="false">
+  <div id="zoomBar">
+    <button id="zIn">+</button>
+    <button id="zOut">−</button>
+    <button id="zReset" style="font-size:13px;width:auto;padding:0 10px">1x</button>
+  </div>
+  <div id="zoomLbl">زوم 1x — قرّب بإصبعين</div>
+</div>
+<div id="status">اختر جهازاً واضغط اتصال</div>
+<div id="padSection">
+  <div id="pad"><b>👆 لوحة اللمس</b><span>اسحب للتحريك • انقرة = كليك شمال</span><span>إصبعان: حركة = سكرول • نقرة = كليك يمين</span></div>
+</div>
+<div id="mouseBtns">
+  <button id="btnLeft">🖱 شمال</button>
+  <button id="btnRight">🖱 يمين</button>
+  <button id="btnKbd">⌨️</button>
+  <button id="scrUp">📜 ▲</button>
+  <button id="scrDown">📜 ▼</button>
+  <button id="btnMid">🖱 وسط</button>
 </div>
 <div id="kbd">
   <input id="txtInput" placeholder="اكتب نصاً ليُرسل للجهاز...">
@@ -43,6 +73,7 @@ body{background:#0f172a;color:#f1f5f9;font-family:Segoe UI,system-ui;overflow:hi
 const SUPABASE_URL = "https://poktdyyucpiesyljxdkg.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBva3RkeXl1Y3BpZXN5bGp4ZGtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyOTYyOTAsImV4cCI6MjEwMzg3MjI5MH0.-P-4TVEAEkPKQJTXCYU_8sBEewnOTBoKPNJIVjOMU4k";
 let fp=null, token=null, frameTimer=null, connected=false;
+let VIEW_ONLY=false;
 const headers = {apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}`, "Content-Type":"application/json", Prefer:"return=representation"};
 
 async function sb(method, path, params="", body=null){
@@ -56,7 +87,6 @@ async function loadDevices(){
   const sel=document.getElementById('deviceSel');
   try{
     const rows = await sb('GET','devices','?select=fingerprint,topic_id&limit=50');
-    // fallback to web_sessions active
     const sess = await sb('GET','web_sessions','?status=eq.active&select=fingerprint,token');
     const map=new Map(sess.map(s=>[s.fingerprint, s.token]));
     sel.innerHTML="";
@@ -68,7 +98,6 @@ async function loadDevices(){
       if(map.has(r.fingerprint)) opt.dataset.token=map.get(r.fingerprint);
       sel.appendChild(opt);
     });
-    // also add sessions not in devices
     sess.forEach(s=>{
       if(!rows.find(r=>r.fingerprint===s.fingerprint)){
         const opt=document.createElement('option');
@@ -90,7 +119,6 @@ async function startStream(){
   fp=sel.value;
   token=getToken();
   if(!fp || fp.includes('لا يوجد')){ alert('اختر جهازاً'); return; }
-  // إذا لا يوجد token، حاول إنشاء جلسة عبر تليجرام - للآن نطلب من المستخدم تفعيل من تليجرام أولاً
   if(!token){
     document.getElementById('status').textContent='⚠️ الجهاز غير مفعل - اضغط 🎮 تحكم كامل في تليجرام أولاً';
     return;
@@ -98,7 +126,6 @@ async function startStream(){
   connected=true;
   document.getElementById('status').textContent='● متصل - جاري البث...';
   frameTimer=setInterval(fetchFrame, 350);
-  // إرسال heartbeat كل 5ث لتجديد الجلسة
 }
 async function fetchFrame(){
   if(!connected||!fp||!token) return;
@@ -110,68 +137,126 @@ async function fetchFrame(){
   }catch(e){ console.log(e); }
 }
 async function sendControl(obj){
-  if(!fp||!token) return;
+  if(!fp||!token||VIEW_ONLY) return;
   try{
     await sb('PATCH','web_sessions',`?fingerprint=eq.${fp}&token=eq.${token}`,{pending_control:obj});
   }catch(e){ console.log(e); }
 }
-// Canvas interaction
-const canvas=document.getElementById('canvas');
-const wrap=document.getElementById('wrap');
-let isDown=false, last={x:0,y:0};
-function posFromEvent(e){
-  const rect=canvas.getBoundingClientRect();
-  const img=document.getElementById('stream');
-  // حساب نسبة الصورة داخل الـ wrap
-  const scaleX = img.naturalWidth ? img.naturalWidth / img.clientWidth : 1;
-  const scaleY = img.naturalHeight ? img.naturalHeight / img.clientHeight : 1;
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  // تحويل إحداثيات الـ canvas إلى إحداثيات الشاشة الأصلية (تقديري)
-  // نرسل delta للتحريك النسبي بدل مطلق لتجنب حساب خاطئ
-  return {x: clientX - rect.left, y: clientY - rect.top, scaleX, scaleY};
+/* ===== الزوم على صورة البث ===== */
+let Z=1, TX=0, TY=0;
+const img=document.getElementById('stream');
+const streamWrap=document.getElementById('streamWrap');
+function applyZoom(){
+  Z=Math.min(4,Math.max(1,Z));
+  img.style.transform=`translate(${TX}px,${TY}px) scale(${Z})`;
+  document.getElementById('zoomLbl').textContent='زوم '+Z.toFixed(1)+'x';
 }
-canvas.addEventListener('mousedown', e=>{ isDown=true; last=posFromEvent(e); });
-canvas.addEventListener('touchstart', e=>{ isDown=true; last=posFromEvent(e); e.preventDefault(); }, {passive:false});
-canvas.addEventListener('mousemove', e=>{
-  if(!isDown) return;
-  const cur=posFromEvent(e);
-  const dx=Math.round((cur.x-last.x)*2);
-  const dy=Math.round((cur.y-last.y)*2);
-  if(Math.abs(dx)>2||Math.abs(dy)>2){
-    sendControl({action:'move',dx,dy});
-    last=cur;
+function setZoom(z){ Z=z; if(Z===1){TX=0;TY=0;} applyZoom(); }
+document.getElementById('zIn').onclick=()=>setZoom(Z+0.5);
+document.getElementById('zOut').onclick=()=>setZoom(Z-0.5);
+document.getElementById('zReset').onclick=()=>setZoom(1);
+let pinchD0=0, panX0=0, panY0=0, panTX0=0, panTY0=0, pinchZ0=1;
+streamWrap.addEventListener('touchstart', e=>{
+  if(e.touches.length===2){
+    pinchD0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    pinchZ0=Z;
+  } else if(e.touches.length===1 && Z>1){
+    panX0=e.touches[0].clientX; panY0=e.touches[0].clientY; panTX0=TX; panTY0=TY;
   }
-});
-canvas.addEventListener('touchmove', e=>{
-  if(!isDown) return;
-  const cur=posFromEvent(e);
-  const dx=Math.round((cur.x-last.x)*2);
-  const dy=Math.round((cur.y-last.y)*2);
-  if(Math.abs(dx)>2||Math.abs(dy)>2){
-    sendControl({action:'move',dx,dy});
-    last=cur;
+}, {passive:true});
+streamWrap.addEventListener('touchmove', e=>{
+  if(e.touches.length===2){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    if(pinchD0>0){ Z=pinchZ0*(d/pinchD0); applyZoom(); }
+    e.preventDefault();
+  } else if(e.touches.length===1 && Z>1){
+    TX=panTX0+(e.touches[0].clientX-panX0); TY=panTY0+(e.touches[0].clientY-panY0);
+    applyZoom();
+    e.preventDefault();
+  }
+}, {passive:false});
+/* ===== لوحة اللمس (تاتش باد) ===== */
+const pad=document.getElementById('pad');
+let pDown=false, pT0=0, pX0=0, pY0=0, pLastX=0, pLastY=0, pMoved=0, pFingers=0;
+let pLastSend=0, accDX=0, accDY=0;
+let p2Y0=0, p2LastY=0;
+function padPos(t){ const r=pad.getBoundingClientRect(); return {x:t.clientX-r.left, y:t.clientY-r.top}; }
+pad.addEventListener('touchstart', e=>{
+  pFingers=e.touches.length;
+  if(pFingers===1){
+    const p=padPos(e.touches[0]);
+    pDown=true; pT0=Date.now(); pX0=p.x; pY0=p.y; pLastX=p.x; pLastY=p.y; pMoved=0; accDX=0; accDY=0;
+  } else if(pFingers===2){
+    const p=padPos(e.touches[0]);
+    p2Y0=p.y; p2LastY=p.y; pDown=false;
   }
   e.preventDefault();
 }, {passive:false});
-canvas.addEventListener('mouseup', e=>{
-  if(isDown){
-    isDown=false;
-    // نقرة إذا لم يتحرك كثيراً
-    sendControl({action:'click',button:'left'});
+pad.addEventListener('touchmove', e=>{
+  if(e.touches.length===1 && pDown){
+    const p=padPos(e.touches[0]);
+    const dx=p.x-pLastX, dy=p.y-pLastY;
+    pMoved+=Math.abs(dx)+Math.abs(dy);
+    accDX+=dx*2.2; accDY+=dy*2.2; // حساسية اللمس
+    pLastX=p.x; pLastY=p.y;
+    const now=Date.now();
+    if(now-pLastSend>60 && (Math.abs(accDX)>1||Math.abs(accDY)>1)){
+      sendControl({action:'move',dx:Math.round(accDX),dy:Math.round(accDY)});
+      accDX=0; accDY=0; pLastSend=now;
+    }
+  } else if(e.touches.length===2){
+    const p=padPos(e.touches[0]);
+    const dy=p.y-p2LastY;
+    p2LastY=p.y;
+    if(Math.abs(dy)>6){ sendControl({action:'scroll',dy:dy>0?-120:120}); }
   }
-});
-canvas.addEventListener('touchend', e=>{
-  if(isDown){
-    isDown=false;
-    sendControl({action:'click',button:'left'});
+  e.preventDefault();
+}, {passive:false});
+function padEnd(e){
+  if(pFingers===1 && pDown){
+    const dt=Date.now()-pT0;
+    if(accDX||accDY){ sendControl({action:'move',dx:Math.round(accDX),dy:Math.round(accDY)}); }
+    if(dt<260 && pMoved<14){ sendControl({action:'click',button:'left'}); } // نقرة
+  } else if(pFingers===2){
+    const dt=Date.now()-pT0;
+    if(dt<300){ sendControl({action:'click',button:'right'}); } // نقرة إصبعين = يمين
   }
+  pDown=false; pFingers=0;
+}
+pad.addEventListener('touchend', padEnd);
+pad.addEventListener('touchcancel', ()=>{ pDown=false; pFingers=0; });
+// دعم الماوس على اللوحة (للتجربة من PC)
+let mDown=false, mLX=0, mLY=0;
+pad.addEventListener('mousedown', e=>{ mDown=true; mLX=e.clientX; mLY=e.clientY; });
+window.addEventListener('mousemove', e=>{
+  if(!mDown) return;
+  sendControl({action:'move',dx:Math.round((e.clientX-mLX)*2),dy:Math.round((e.clientY-mLY)*2)});
+  mLX=e.clientX; mLY=e.clientY;
 });
-canvas.addEventListener('click', e=>{
-  // نقرة سريعة إضافية
-  // sendControl already via mouseup
-});
-// Keyboard
+window.addEventListener('mouseup', ()=>{ mDown=false; });
+/* ===== أزرار الماوس ===== */
+function holdRepeat(el, fn){
+  let iv=null, to=null;
+  const start=e=>{ e.preventDefault(); fn(); to=setTimeout(()=>{ iv=setInterval(fn,120); },400); };
+  const stop=()=>{ clearTimeout(to); clearInterval(iv); };
+  el.addEventListener('touchstart', start, {passive:false});
+  el.addEventListener('touchend', stop);
+  el.addEventListener('touchcancel', stop);
+  el.addEventListener('mousedown', start);
+  el.addEventListener('mouseup', stop);
+  el.addEventListener('mouseleave', stop);
+}
+document.getElementById('btnLeft').onclick=()=>sendControl({action:'click',button:'left'});
+document.getElementById('btnRight').onclick=()=>sendControl({action:'click',button:'right'});
+document.getElementById('btnMid').onclick=()=>sendControl({action:'click',button:'middle'});
+holdRepeat(document.getElementById('scrUp'), ()=>sendControl({action:'scroll',dy:120}));
+holdRepeat(document.getElementById('scrDown'), ()=>sendControl({action:'scroll',dy:-120}));
+/* ===== الكيبورد ===== */
+document.getElementById('btnKbd').onclick=()=>{
+  const k=document.getElementById('kbd');
+  k.style.display=(k.style.display==='flex')?'none':'flex';
+  if(k.style.display==='flex') document.getElementById('txtInput').focus();
+};
 document.getElementById('txtInput').addEventListener('keydown', e=>{
   if(e.key==='Enter'){
     const txt=e.target.value;
@@ -183,7 +268,6 @@ document.getElementById('btnSend').onclick=()=>{
   if(txt){ sendControl({action:'type',text:txt}); document.getElementById('txtInput').value=''; }
 };
 document.getElementById('btnHideKbd').onclick=()=>{ document.getElementById('kbd').style.display='none'; };
-canvas.addEventListener('dblclick', ()=>{ document.getElementById('kbd').style.display='flex'; document.getElementById('txtInput').focus(); });
 // Controls
 document.getElementById('btnConnect').onclick=startStream;
 document.getElementById('btnClose').onclick=async()=>{
@@ -197,8 +281,6 @@ document.getElementById('btnClose').onclick=async()=>{
 // lifecycle: عند إغلاق الصفحة أغلق البث
 window.addEventListener('beforeunload', ()=>{
   if(fp&&token){
-    navigator.sendBeacon(`${SUPABASE_URL}/rest/v1/web_sessions?token=eq.${token}`, JSON.stringify({status:'closed'}));
-    // sendBeacon لا يدعم headers مخصصة - نستخدم fetch keepalive كـ fallback
     try{ fetch(`${SUPABASE_URL}/rest/v1/web_sessions?token=eq.${token}`, {method:'PATCH', headers, body:JSON.stringify({status:'closed'}), keepalive:true}); }catch(e){}
   }
 });
@@ -216,7 +298,15 @@ setInterval(()=>{ if(!connected) loadDevices(); }, 5000);
     const qfp=q.get('fp'), qtok=q.get('token');
     if(qfp && qtok){
       fp=qfp; token=qtok; connected=true;
-      document.getElementById('status').textContent='● متصل - جاري البث...';
+      VIEW_ONLY = (q.get('mode')==='view');
+      if(VIEW_ONLY){
+        document.getElementById('status').textContent='● مشاهدة فقط - التحكم معطل';
+        document.getElementById('padSection').style.display='none';
+        document.getElementById('mouseBtns').style.display='none';
+        document.getElementById('kbd').style.display='none';
+      } else {
+        document.getElementById('status').textContent='● متصل - جاري البث...';
+      }
       frameTimer=setInterval(fetchFrame, 350);
     }
   }catch(e){ console.log(e); }
