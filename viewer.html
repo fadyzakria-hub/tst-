@@ -37,7 +37,7 @@ body{background:#0f172a;color:#f1f5f9;font-family:Segoe UI,system-ui;overflow-x:
 </head>
 <body>
 <div id="bar">
-  <h1>🖥 التحكم المباشر</h1>
+  <h1>🖥 التحكم المباشر <small id="verBadge" style="font-size:10px;background:#3b82f6;padding:2px 8px;border-radius:10px">v3</small></h1>
   <div>
     <select id="deviceSel"><option>جاري التحميل...</option></select>
     <button id="btnConnect">اتصال</button>
@@ -127,6 +127,7 @@ async function startStream(){
   }
   connected=true;
   document.getElementById('status').textContent='● متصل - جاري البث...';
+  initVC();
   frameTimer=setInterval(fetchFrame, 200);
 }
 let lastFrameHash='';
@@ -212,11 +213,17 @@ function clickAt(button){
   const f=vcToFrame();
   sendControl({action:'click_at', fx:f.fx, fy:f.fy, button:button||'left'});
 }
+function initVC(){
+  const b=imgBox();
+  if(!VC_INIT){ VX=(b.w||300)/2; VY=(b.h||200)/2; VC_INIT=true; }
+  clampVC(); placeVC();
+}
 img.addEventListener('load', ()=>{
   if(!VC_INIT){ const b=imgBox(); VX=b.w/2; VY=b.h/2; VC_INIT=true; }
   placeVC();
 });
 window.addEventListener('resize', placeVC);
+setInterval(()=>{ if(connected) placeVC(); }, 800); // تثبيت الظهور دورياً
 /* ===== لوحة اللمس (تاتش باد) ===== */
 const pad=document.getElementById('pad');
 let pDown=false, pT0=0, pX0=0, pY0=0, pLastX=0, pLastY=0, pMoved=0, pFingers=0;
@@ -344,6 +351,7 @@ setInterval(()=>{ if(!connected) loadDevices(); }, 5000);
       } else {
         document.getElementById('status').textContent='● متصل - جاري البث...';
       }
+      initVC();
       frameTimer=setInterval(fetchFrame, 200);
     }
   }catch(e){ console.log(e); }
